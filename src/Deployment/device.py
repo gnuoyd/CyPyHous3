@@ -7,13 +7,24 @@ from multiprocessing import Process, Queue
 
 
 # --------------------------------------------------------------------------------------------------------------------
-def send_response_to_controller( address, device_name, status ):#udp response
+'''
+The following two function handles device discover
+'''
+
+def device_query_handler( address, device_name, status ):#udp response
+    '''
+    This function sends UDP package that contains device name back to the controller 
+    '''
     msg = bytes( device_name + ' ' + status,"utf-8" )
     s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM ) 
     s.sendto( msg, address )
     s.close()
 
-def listening_discover(device_name):
+def device_quey_listener(device_name):
+    '''
+    This function listening on port 60651 for device query
+    Once a query is captured, it will call the device_query_handler to response
+    '''
     status = "some_status"
     # Preparing socket 
     port = 60651  
@@ -27,21 +38,23 @@ def listening_discover(device_name):
         instruction, address = discover_socket.recvfrom(buffer_size)
         print( "[DISCOVER]", instruction, " from " , address )
         if( instruction.decode("utf-8") == "INFO" ):
-            udp_response = threading.Thread( target=send_response_to_controller, args=(address, device_name, status, ) )
+            udp_response = threading.Thread( target=device_query_handler, args=(address, device_name, status, ) )
             udp_response.start()
         
 
 
 # --------------------------------------------------------------------------------------------------------------------
+'''
+The following function handles device instruction execution
+'''
 
-def ftp_dowload (address):
-    os.system("wget -r ftp://"+ address[0] +":60655")
-
-    
 def git_dowload ( controller_sock, url ):
+    '''
+    This function handles git clone command, the command will execute on /tmp directory
+    '''
     print("[GIT]: downloading from ", url)
-    result = subprocess.run(['git','clone', url.strip()], cwd="/home/pi/Desktop" , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    print (result.stdout)
+    result = subprocess.run(['git','clone', url.strip()], cwd="/tmp" , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    print ("[GIT]:", result.stdout)
   
     print("[GIT]: git return code",result.returncode)
     if(result.returncode == 0):
@@ -50,28 +63,28 @@ def git_dowload ( controller_sock, url ):
         controller_sock.send(b"FAIL"+ result.stdout[0:1000])
 
 def excute_program ( command ):
+    '''
+    This function handles command execution, the command will execute on /tmp directory
+    '''
     print("[EXC]: Excuting command ", command)
     if(len(command.split()) != 0  ):
         command = command.split("&&")
         for arg in command:
-            result = subprocess.run(arg.split(), cwd="/home/pi/Desktop" , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            result = subprocess.run(arg.split(), cwd="/tmp" , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             print (result.stdout)
             print("[EXC]: excute return code",result.returncode)
     else:
         print("[EXC]: empty command")
-    # if(result.returncode == 0):
-    #     controller_sock.send(b"SUCCESS")
-    # else:
-    #     controller_sock.send(b"FAIL"+ result.stdout[0:1000])
-    
+
 
 def connection_handler(controller_sock, address):
+    '''
+    This function handles connection and command parse 
+    '''
     request = controller_sock.recv(1024)
     instruction = request.decode("utf-8")
     print("[INSTRUCTION]: ", instruction, " -- ",request)
-    if  ( instruction[0:2] == "FTP" ): 
-        ftp_dowload(address)
-    elif( instruction[0:3] == "GIT" ):
+    if  ( instruction[0:3] == "GIT" ):
         git_dowload( controller_sock, instruction[3:len(instruction)] )
     elif( instruction[0:3] == "EXC" ):
         excute_program( instruction[3:len(instruction)] )
@@ -81,6 +94,11 @@ def connection_handler(controller_sock, address):
 
 
 def listening_instruction():
+    '''
+    This function constently listens on port 60652 for instruction
+    Upon reciving an instruction, it will call the connection handler
+    to parse and handle the request 
+    '''
     port = 60652
     instruction_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     instruction_socket.bind(('0.0.0.0', port))
@@ -97,7 +115,7 @@ def listening_instruction():
 
 device_name = "some_device"
 listening_instruction      = Process(target=listening_instruction)
-listening_discover         = Process(target=listening_discover,args=(device_name, ))
+listening_discover         = Process(target=device_quey_listener,args=(device_name, ))
 
 listening_instruction.start()
 listening_discover.start()
