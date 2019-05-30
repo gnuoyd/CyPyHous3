@@ -12,6 +12,9 @@ def update_device ( device_list ):
     sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sender.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sender.sendto(b'INFO', ('<broadcast>', 60651))
+    sender.sendto(b'INFO', ('10.194.167.146', 60651))
+
+    
     sender.settimeout(3.0)
 
     print("[INFO]: Device query sent!")
