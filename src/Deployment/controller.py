@@ -12,8 +12,6 @@ def update_device ( device_list ):
     sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sender.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sender.sendto(b'INFO', ('<broadcast>', 60651))
-    
-    sender.sendto(b'INFO', ('10.194.167.146', 60651))
     sender.settimeout(3.0)
 
     print("[INFO]: Device query sent!")
@@ -106,7 +104,7 @@ while True:
             print("[GIT]: Sending command to " + str(device_list[index][1]))
             git_transfering( device_list[index][1] , command[3:len(command)] )
 
-    elif( command[0:6] == "excute" ):
+    elif( command[0:7] == "execute" ):
         print("Which of the following devices do you want to tranfer file using GIT? ")
         print("\n ------------------------ Device List ------------------------")
         for index, attributes in device_list.items():

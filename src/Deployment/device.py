@@ -1,8 +1,9 @@
 '''
 DANGER: This code contains multiple security loopholes, running in a privatized network is recommanded 
 '''
-import select, socket, os, threading, subprocess
+import select, socket, os, threading, subprocess,shutil
 from multiprocessing import Process, Queue
+
 
 
 
@@ -31,7 +32,7 @@ def device_quey_listener(device_name):
     buffer_size = 64 
     discover_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     discover_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    discover_socket.bind(('', port))
+    discover_socket.bind(('0.0.0.0', port))
 
     # Listening
     while True:
@@ -53,7 +54,7 @@ def git_dowload ( controller_sock, url ):
     This function handles git clone command, the command will execute on /tmp directory
     '''
     print("[GIT]: downloading from ", url)
-    result = subprocess.run(['git','clone', url.strip()], cwd="/tmp" , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    result = subprocess.run(['git','clone', url.strip()], cwd= ( str(os.environ.get('HOME')) + "/tmp" ) , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     print ("[GIT]:", result.stdout)
   
     print("[GIT]: git return code",result.returncode)
@@ -70,7 +71,7 @@ def excute_program ( command ):
     if(len(command.split()) != 0  ):
         command = command.split("&&")
         for arg in command:
-            result = subprocess.run(arg.split(), cwd="/tmp" , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            result = subprocess.run(arg.split(), cwd= ( str(os.environ.get('HOME')) + "/tmp" ) , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             print (result.stdout)
             print("[EXC]: excute return code",result.returncode)
     else:
@@ -139,6 +140,11 @@ def monitoring():
     
 #-----------------------------------------------------------------------------------------------------------------------
 # main
+tmp_path = str(os.environ.get('HOME')) + "/tmp"
+
+if os.path.exists(tmp_path):
+    shutil.rmtree(tmp_path)
+os.makedirs(tmp_path)
 
 device_name = "some_device"
 listening_instruction      = Process(target=listening_instruction)
