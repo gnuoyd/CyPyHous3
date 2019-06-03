@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-from math import sin, cos
+from math import sin, cos, pi
 from functools import partial
+from numpy import loadtxt
+import matplotlib.pyplot as plt
 
 try:
     from ompl import base as ob
@@ -11,38 +13,33 @@ except ImportError:
     # subdirectory of the parent directory called "py-bindings."
     from os.path import abspath, dirname, join
     import sys
-
     sys.path.insert(0, join(dirname(dirname(abspath(__file__))), 'py-bindings'))
     from ompl import base as ob
     from ompl import control as oc
 
-#Define parameters
-x_lower = -1
-x_upper = 1
-y_lower = -2
-y_upper = 2
-x_pos = #VICON
-y_pos = #VICON
-#phi = #VICON
-wp_x = #WAYPOINT
-wp_y = #WAYPOINT
+# Define parameters
+x_pos = 0
+y_pos = 0
+# phi = #VICON
+wp_x = 0.75
+wp_y = 1
 
-#class MyDecomposition(oc.GridDecomposition):
-    #def __init__(self, length, bounds):
-    #   super(MyDecomposition, self).__init__(length, 2, bounds)
 
-    #def project(self, s, coord):
-    #   coord[0] = s.getX()
-    #  coord[1] = s.getY()
+# class MyDecomposition(oc.GridDecomposition):
+# def __init__(self, length, bounds):
+#   super(MyDecomposition, self).__init__(length, 2, bounds)
 
-    #def sampleFullState(self, sampler, coord, s):
-    #   sampler.sampleUniform(s)
-    #  s.setXY(coord[0], coord[1])
+# def project(self, s, coord):
+#   coord[0] = s.getX()
+#  coord[1] = s.getY()
+
+# def sampleFullState(self, sampler, coord, s):
+#   sampler.sampleUniform(s)
+#  s.setXY(coord[0], coord[1])
 
 
 def isStateValid(spaceInformation, state):
-    # perform collision checking or check if other constraints are
-    # satisfied
+    # Perform collision checking or check if other constraints are satisfied
     return spaceInformation.satisfiesBounds(state)
 
 
@@ -53,24 +50,30 @@ def propagate(start, control, duration, state):
 
 
 def plan():
-    # construct the state space we are planning in
+    # Construct the state space we are planning in
     space = ob.SE2StateSpace()
 
-    # set the bounds for the R^2 part of SE(2)
+    # Set the bounds for the R^2 part of SE(2) based on arena dimensions
     bounds = ob.RealVectorBounds(2)
-    bounds.setLow(-1)
-    bounds.setHigh(1)
+    # X bounds
+    bounds.setLow(0, -1)
+    bounds.setHigh(0, 1)
+    #Y bounds
+    bounds.setLow(1, -2)
+    bounds.setHigh(1, 2)
     space.setBounds(bounds)
 
-    # create a control space
+    # Create a control space
     cspace = oc.RealVectorControlSpace(space, 2)
 
-    # set the bounds for the control space
+    # Set the bounds for the control space
     cbounds = ob.RealVectorBounds(2)
-    cbounds.setLow(0, x_lower)
-    cbounds.setHigh(0, x_upper)
-    cbounds.setLow(1, y_lower)
-    cbounds.setHigh(1, y_upper)
+    #Velocity bounds
+    cbounds.setLow(0, 0)
+    cbounds.setHigh(0, 2)
+    #Steering angle bounds
+    cbounds.setLow(1, -0.35)
+    cbounds.setHigh(1, 0.35)
     cspace.setBounds(cbounds)
 
     # define a simple setup class
@@ -83,7 +86,7 @@ def plan():
     start = ob.State(space)
     start().setX(x_pos)
     start().setY(y_pos)
-    #start().setYaw(0.0)
+    start().setYaw(0)
 
     # create a goal state
     goal = ob.State(space)
@@ -100,19 +103,27 @@ def plan():
     # planner = oc.EST(si)
     # planner = oc.KPIECE1(si) # this is the default
     # SyclopEST and SyclopRRT require a decomposition to guide the search
-    #decomp = MyDecomposition(32, bounds)
-    #planner = oc.SyclopEST(si, decomp)
+    # decomp = MyDecomposition(32, bounds)
+    # planner = oc.SyclopEST(si, decomp)
     # planner = oc.SyclopRRT(si, decomp)
     ss.setPlanner(planner)
     # (optionally) set propagation step size
     si.setPropagationStepSize(.1)
-
     # attempt to solve the problem
-    solved = ss.solve(20.0)
+    solved = ss.solve(1.0)
 
     if solved:
         # print the path to screen
         print("Found solution:\n%s" % ss.getSolutionPath().printAsMatrix())
+        data = open("planned_path.txt", 'w')
+        data.write(ss.getSolutionPath().printAsMatrix())
+        data.close()
+        path = loadtxt('planned_path.txt')
+        plt.scatter(path[:, 0], path[:, 1])
+        plt.xlabel('x-position [m]')
+        plt.ylabel('y-position [m]')
+        plt.title('RRT Planned Path: (0,0) to (0.75, 1)')
+        plt.show()
 
 
 if __name__ == "__main__":
