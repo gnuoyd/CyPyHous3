@@ -125,7 +125,7 @@ while True:
 
         for index in index_list:
             print("[EXC]: Sending command to " + str(device_list[index][1]))
-            execute_program( device_list[index][1] , command[6:len(command)] )
+            execute_program( device_list[index][1] , command[7:len(command)] )
 
     else:
         print("[ERROR]: command not vaild")

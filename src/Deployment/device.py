@@ -1,32 +1,35 @@
 '''
 DANGER: This code contains multiple security loopholes, running in a privatized network is recommanded 
 '''
-import select, socket, os, threading, subprocess,shutil
+import select, socket, os, threading, subprocess, shutil, datetime, time
 from multiprocessing import Process, Queue
 
 
 
 
-# --------------------------------------------------------------------------------------------------------------------
-'''
-The following two function handles device discover
-'''
+# The following two function handles device discover---------------------------------------------------------
 
-def device_query_handler( address, device_name, status ):#udp response
+def device_query_handler( address: tuple, device_name: str ):  # no returns 
     '''
-    This function sends UDP package that contains device name back to the controller 
+    INPUT  - address: ip address that the function send the package to 
+             device_name: device name
+    OUTPUT - NONE
+    FUNCATIONALIATY -  This function sends UDP package that contains device name back to the controller 
     '''
-    msg = bytes( device_name + ' ' + status,"utf-8" )
+    status = "some_status"
+    msg = bytes( device_name + ' ' + status ,"utf-8" )
     s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM ) 
     s.sendto( msg, address )
     s.close()
 
-def device_quey_listener(device_name):
+def device_quey_listener(device_name: str):  # no returns
     '''
-    This function listening on port 60651 for device query
-    Once a query is captured, it will call the device_query_handler to response
+    INPUT  - device_name: device Name
+    OUTPUT - NONE 
+    FUNCATIONALIATY:    This function listening on port 60651 for device query
+                        Once a query is captured, it will call the device_query_handler to response
     '''
-    status = "some_status"
+
     # Preparing socket 
     port = 60651  
     buffer_size = 64 
@@ -39,19 +42,19 @@ def device_quey_listener(device_name):
         instruction, address = discover_socket.recvfrom(buffer_size)
         print( "[DISCOVER]", instruction, " from " , address )
         if( instruction.decode("utf-8") == "INFO" ):
-            udp_response = threading.Thread( target=device_query_handler, args=(address, device_name, status, ) )
+            udp_response = threading.Thread( target=device_query_handler, args=(address, device_name, ) )
             udp_response.start()
         
 
 
-# --------------------------------------------------------------------------------------------------------------------
-'''
-The following function handles device instruction execution
-'''
+# The following function handles device instruction execution -----------------------------------------------
 
-def git_dowload ( controller_sock, url ):
+def git_dowload ( controller_sock: socket, url: str ): # no returns 
     '''
-    This function handles git clone command, the command will execute on /tmp directory
+    INPUT  - controller_sock: the socket that this function later will use to send the execution result back to 
+             url: the git url that will be puul from the internet 
+    OUTPUT - NONE
+    FUNCATIONALIATY - This function handles git clone command, the command will execute on /tmp directory
     '''
     print("[GIT]: downloading from ", url)
     result = subprocess.run(['git','clone', url.strip()], cwd= ( str(os.environ.get('HOME')) + "/tmp" ) , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -63,9 +66,11 @@ def git_dowload ( controller_sock, url ):
     else:
         controller_sock.send(b"FAIL"+ result.stdout[0:1000])
 
-def excute_program ( command ):
+def excute_program ( command ):  # no returns 
     '''
-    This function handles command execution, the command will execute on /tmp directory
+    INPUT  - command: the command that will be executed by this function
+    OUTPUT - NONE
+    FUNCATIONALIATY - This function handles command execution, the command will execute on /tmp directory
     '''
     print("[EXC]: Excuting command ", command)
     if(len(command.split()) != 0  ):
@@ -78,9 +83,12 @@ def excute_program ( command ):
         print("[EXC]: empty command")
 
 
-def connection_handler(controller_sock, address):
+def connection_handler(controller_sock: socket, address: tuple): # no returns 
     '''
-    This function handles connection and command parse 
+    INPUT  - controller_sock: the socket that handle the connection to the controller
+             address: address of the controller 
+    OUTPUT - NONE
+    FUNCATIONALIATY - This function handles connection and command parse 
     '''
     request = controller_sock.recv(1024)
     instruction = request.decode("utf-8")
@@ -96,9 +104,11 @@ def connection_handler(controller_sock, address):
 
 def listening_instruction():
     '''
-    This function constently listens on port 60652 for instruction
-    Upon reciving an instruction, it will call the connection handler
-    to parse and handle the request 
+    INPUT  - NONE
+    OUTPUT - NONE
+    FUNCATIONALIATY -   This function constently listens on port 60652 for instruction
+                        Upon reciving an instruction, it will call the connection handler
+                        to parse and handle the request 
     '''
     port = 60652
     instruction_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -110,19 +120,50 @@ def listening_instruction():
         instructiond_handler = threading.Thread( target=connection_handler, args=(controller_sock,address,) )
         instructiond_handler.start()
 
-#-----------------------------------------------------------------------------------------------------------------------
-'''
-the following functions handles device monitoring 
-'''
-def monitor_query_handler(address):
-    info = "some_info"
-    msg = bytes( device_name + ' ' + info,"utf-8" )
-    s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM ) 
-    s.sendto( msg, address )
-    s.close()
+# the following functions handles device monitoring ---------------------------------------------------------
+
+def get_info() -> str:
+    '''
+    INPUT  - NONE
+    OUTPUT - NONE
+    FUNCATIONALIATY - this function gets the necessary infomation from the device 
+                      and then send back to the controller  
+    '''
+    msg = "some_info" + str(datetime.datetime.now().time())
+    return msg
+
+def monitor_query_handler(address: tuple , parameter: list): # no returns 
+    '''
+    INPUT  - address: address of the controller 
+             parameter: monitering parameter 
+    OUTPUT - NONE
+    FUNCATIONALIATY - this function sends back infomation of the device back to the 
+                      controller, and the dehavior is controller by the parameter 
+                      passed in. The first parameter controls the time gap between 
+                      each UDP package, the seoncd one control the number of time that 
+                      the device will send the information .
+    '''
+    try:
+        gap = int(parameter[0])
+        termination = int(parameter[1])
+    except:
+        print("[ERROR]: monitoring parameter input type error, it can only accept int")
+
+    for i in range(termination):
+        info = get_info()
+        msg = bytes( device_name + ' ' + info,"utf-8" )
+        s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM ) 
+        s.sendto( msg, address )
+        s.close()
+        time.sleep(gap)
 
 
 def monitoring():
+    '''
+    INPUT  - NONE
+    OUTPUT - NONE
+    FUNCATIONALIATY - This function constently monitering the 
+    '''
     port = 60653
     buffer_size = 64 
     monitor_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -132,9 +173,10 @@ def monitoring():
     # Listening
     while True:
         instruction, address = monitor_socket.recvfrom(buffer_size)
-        print( "[MONITOR]", instruction, " from " , address )
-        if( instruction.decode("utf-8") == "MONITOR" ):
-            udp_response = threading.Thread( target=monitor_query_handler, args=(address, ) )
+        instruction = instruction.decode("utf-8")
+        if( instruction[0:7] == "MONITOR" ):
+            parameter = instruction[8:].split(' ')
+            udp_response = threading.Thread( target=monitor_query_handler, args=(address, parameter,) )
             udp_response.start()
 
     
