@@ -82,6 +82,7 @@ def execute_command_w_feedback( address: tuple , command: str ):
         print("[ERROR]: The device returns : " + response[3:-1])
         print(" \n\n\n")
     else:
+        print(response)
         print("[ERROR]: unknow response code, contact administrator.")
 
     sender.close()
@@ -110,6 +111,11 @@ def device_selection(device_list):
     except:
         print("[ERROR]: input not valid")
         return 0
+    
+    for i in index_list:
+        if (i >= len(device_list)):
+            print("[ERROR]: Index out of range")
+            return 0
 
     return index_list
 
@@ -131,19 +137,8 @@ while True:
         update_device(device_list)
 
     elif( command[0:9] == "execute-f" ): 
-        print("Which of the following devices do you want to exete command and want feed back? ")
-        print("\n ------------------------ Device List ------------------------")
-        for index, attributes in device_list.items():
-            print(index, " : name" + attributes[0] + "\t\t\t IP:" + attributes[1] + "\t\t Status:" + attributes[2] )
-        print(" -------------------------------------------------------------\n")
-
-        index_list = input("Input the device index, separate by space >>> ").split(' ')
-        print('\n')
-        try:
-            index_list = [int(x) for x in index_list if x != '']
-            index_list = list(set(index_list))
-        except:
-            print("[ERROR]: input not valid")
+        index_list = device_selection(device_list)
+        if( index_list == 0):
             continue
 
         for index in index_list:
@@ -151,19 +146,8 @@ while True:
             execute_command_w_feedback( device_list[index][1] , command[9:len(command)] )
 
     elif( command[0:7] == "execute" ):
-        print("Which of the following devices do you want to tranfer file using GIT? ")
-        print("\n ------------------------ Device List ------------------------")
-        for index, attributes in device_list.items():
-            print(index, " : name" + attributes[0] + "\t\t\t IP:" + attributes[1] + "\t\t Status:" + attributes[2] )
-        print(" -------------------------------------------------------------\n")
-
-        index_list = input("Input the device index, separate by space >>> ").split(' ')
-        print('\n')
-        try:
-            index_list = [int(x) for x in index_list if x != '']
-            index_list = list(set(index_list))
-        except:
-            print("[ERROR]: input not valid")
+        index_list = device_selection(device_list)
+        if( index_list == 0):
             continue
 
         for index in index_list:
@@ -174,7 +158,7 @@ while True:
         index_list = device_selection(device_list)
         if( index_list == 0):
             continue
-        argument = "" ##########need attention
+        argument = " ls" ##########need attention
         for index in index_list:
             print("[KILL]: Sending command to " + str(device_list[index][1]))
             execute_command_w_feedback( device_list[index][1] , argument )
@@ -183,7 +167,7 @@ while True:
         index_list = device_selection(device_list)
         if( index_list == 0):
             continue
-        argument = "" ##########need attention       
+        argument = "ls" ##########need attention       
         for index in index_list:
             print("[RUN]: Sending command to " + str(device_list[index][1]))
             execute_program( device_list[index][1] , argument )
@@ -192,7 +176,7 @@ while True:
         index_list = device_selection(device_list)
         if( index_list == 0):
             continue
-        argument = "" ##########need attention        
+        argument = "ls" ##########need attention        
         for index in index_list:
             print("[GITRUN]: Sending command to " + str(device_list[index][1]))
             execute_program( device_list[index][1] , argument )

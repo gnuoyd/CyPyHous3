@@ -82,9 +82,9 @@ def execute_multi_command(command: str, device_list: dict, mode: int):
 #-----------------------------------------------------------------------
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-u", "--git-url",      required = False,   default = "https://github.com/cyphyhouse/CyPyHous3.git", help="path to the git repo, default to be the ONE")
-ap.add_argument("-s", "--start-file",   required = True,    help= "the initialzing bash script that we want to run ")
-ap.add_argument("-b", "--branch",       require = True,     help=" the git branch that we want to pull")
+ap.add_argument("-u", "--url",      required = False,   default = "https://github.com/cyphyhouse/CyPyHous3.git", help="path to the git repo, default to be the ONE")
+ap.add_argument("-s", "--startfile",   required = True,    help= "the initialzing bash script that we want to run ")
+ap.add_argument("-b", "--branch",       required = True,     help=" the git branch that we want to pull")
 args = vars(ap.parse_args())
 
 device_list = {}
@@ -96,14 +96,14 @@ for index, attributes in device_list.items():
 print(" -------------------------------------------------------------\n")
 
 command = "rm -rf CyPyHous3"
-execute_multi_command(command, device_list, 0)
+execute_multi_command(command, device_list, 1)
 
-command = "git clone -b " + args["branch"] + args["git-url"]
+command = "git clone -b " + args["branch"] + ' '+args["url"]
 execute_multi_command(command, device_list, 0)
 
 print("[INFO]: Git clone finished")
 
-command = "sh " + args["start-file"]
+command = "cat " + args["startfile"]
 execute_multi_command(command, device_list, 1)
 
 print("[INFO]: Execute finished")
