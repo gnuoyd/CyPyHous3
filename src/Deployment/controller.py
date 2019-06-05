@@ -1,12 +1,10 @@
 import socket
-import time
-from collections import OrderedDict 
 
-
-
-def update_device ( device_list ):
+def update_device ( device_list: dict ):
     '''
-    This function updates the device list 
+    INPUT  - device_list: a dictionary to store all the discoverd device
+    OUTPUT - NONE
+    FUNCTIONALITY - This function updates the device list 
     '''
     buffer_size = 1024
     sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -27,39 +25,16 @@ def update_device ( device_list ):
         except:
             break
     print("[INFO]: Discover finished")
-     
-
-def git_transfering( address , url ):
-    '''
-    This function handles git file transfering
-    '''
-    sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sender.connect( (address, 60652) )
-    sender.send(bytes('GIT' + url, "utf-8"))
-    
-    #wait for resault
-    sender.settimeout(5.0)
-    try:
-        response, device_address = sender.recvfrom(1024)
-        response = response.decode("utf-8")
-    except:
-        print("[ERROR]: response connection time out, something is woring on the device, SSH for futher information")
-        sender.close()
-        return
-   
-    if(response == "SUCCESS"):
-        print("[INFO]: GIT clone success in device ", address)
-    elif(response[0:4] == "FAIL"):
-        print("[ERROR]: GIT clone FAIL in device ", address)
-        print("[ERROR]: The device returns : " + response[3:-1])
-    else:
-        print("[ERROR]: unknow response code, contact administrator.")
-
-    sender.close()
-    
 
 def execute_command_w_feedback( address: tuple , command: str ):
-
+    '''
+    INPUT  - address: address of the controller 
+             command: command that need to be excuted 
+    OUTPUT - NONE 
+    FUNCTIONALITY - This function execute the given command on the 
+                    device and wait for the device for 10 second for
+                    response 
+    '''
     sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sender.connect( (address, 60652) )
     sender.send(bytes('EXF' + command, "utf-8"))
@@ -74,6 +49,7 @@ def execute_command_w_feedback( address: tuple , command: str ):
         sender.close()
         return
    
+    # handling the responce 
     if(response == "SUCCESS"):
         print("[INFO]: commmand execute successed in device ", address)
     elif(response[0:4] == "FAIL"):
@@ -87,16 +63,28 @@ def execute_command_w_feedback( address: tuple , command: str ):
 
     sender.close()
 
-def execute_program(address, command):
+def execute_program( address: tuple, command: str):
     '''
-    this function handles command execution
+    INPUT  - address: address of the controller 
+             command: command that need to be excuted 
+    OUTPUT - NONE 
+    FUNCTIONALITY - This function execute the given command on the 
+                    device without recieving the response from the 
+                    device
     '''
     sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sender.connect( (address, 60652) )
     sender.send(bytes('EXC' + "  "+ command, "utf-8"))
     sender.close()
 
-def device_selection(device_list):
+def device_selection( device_list: dict ):
+    '''
+    INPUT  - device_list: dictionatry of the device 
+    OUTPUT - 0 if the user input is invalid 
+             list of device index if user input is valid 
+    FUNCTIONALITY - ask user input and return the index of device that the user want to 
+                    execte the command on.
+    '''
     print("Which of the following devices do you want to tranfer file using GIT? ")
     print("\n ------------------------ Device List ------------------------")
     for index, attributes in device_list.items():
@@ -140,7 +128,6 @@ while True:
         index_list = device_selection(device_list)
         if( index_list == 0):
             continue
-
         for index in index_list:
             print("[EXF]: Sending command to " + str(device_list[index][1]))
             execute_command_w_feedback( device_list[index][1] , command[9:len(command)] )
@@ -149,7 +136,6 @@ while True:
         index_list = device_selection(device_list)
         if( index_list == 0):
             continue
-
         for index in index_list:
             print("[EXC]: Sending command to " + str(device_list[index][1]))
             execute_program( device_list[index][1] , command[7:len(command)] )
