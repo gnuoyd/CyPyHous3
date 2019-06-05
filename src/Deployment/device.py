@@ -49,24 +49,25 @@ def device_quey_listener(device_name: str):  # no returns
 
 # The following function handles device instruction execution -----------------------------------------------
 
-def git_dowload ( controller_sock: socket, url: str ): # no returns 
+
+def excute_program_w_feedback ( controller_sock: socket, command: str ): # no returns 
     '''
     INPUT  - controller_sock: the socket that this function later will use to send the execution result back to 
              url: the git url that will be puul from the internet 
     OUTPUT - NONE
     FUNCATIONALIATY - This function handles git clone command, the command will execute on /tmp directory
     '''
-    print("[GIT]: downloading from ", url)
-    result = subprocess.run(['git','clone', url.strip()], cwd= ( str(os.environ.get('HOME')) + "/tmp" ) , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    print ("[GIT]:", result.stdout)
+    print("[EXF]: Excuting command ", command)
+    result = subprocess.run( command.split(), cwd= ( str(os.environ.get('HOME')) + "/tmp" ) , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    print ("[EXF]:", result.stdout)
   
-    print("[GIT]: git return code",result.returncode)
+    print("[EXF]: Excuting return code",result.returncode)
     if(result.returncode == 0):
         controller_sock.send(b"SUCCESS")
     else:
         controller_sock.send(b"FAIL"+ result.stdout[0:1000])
 
-def excute_program ( command ):  # no returns 
+def excute_program ( command: str ):  # no returns 
     '''
     INPUT  - command: the command that will be executed by this function
     OUTPUT - NONE
@@ -92,11 +93,12 @@ def connection_handler(controller_sock: socket, address: tuple): # no returns
     '''
     request = controller_sock.recv(1024)
     instruction = request.decode("utf-8")
-    print("[INSTRUCTION]: ", instruction, " -- ",request)
-    if  ( instruction[0:3] == "GIT" ):
-        git_dowload( controller_sock, instruction[3:len(instruction)] )
-    elif( instruction[0:3] == "EXC" ):
+    print("[INSTRUCTION]: ", instruction, " : ",request)
+
+    if( instruction[0:3] == "EXC" ):
         excute_program( instruction[3:len(instruction)] )
+    elif( instruction[0:3] == "EXF" ):
+        excute_program_w_feedback( controller_sock, instruction[3:len(instruction)] )
     else:
         pass
     controller_sock.close()
