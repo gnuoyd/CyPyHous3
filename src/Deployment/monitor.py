@@ -77,9 +77,9 @@ print(os.environ['ROS_MASTER_URI'])
 
 os.environ['ROS_MASTER_URI'] = "http://localhost:11311"
 
-data_queue_list = [ multiprocessing.Queue() for index, attributes in device_list.items() ]
+data_queue_list = [ [multiprocessing.Queue(), (attributes[0] + attributes[1])] for index, attributes in device_list.items() ]
 sub_process_list = [ multiprocessing.Process(target = listener, args = ( data_queue_list[index], attributes[1], topic, ) ) for index, attributes in device_list.items() ]
-pub_process_list = [ multiprocessing.Process(target = talker, args = (topic+str(data_queue_list.index(queue)), String, queue,))  for queue in  data_queue_list]
+pub_process_list = [ multiprocessing.Process(target = talker, args = (  queue[1] , String, queue[0],))  for queue in  data_queue_list]
 
 for process in sub_process_list :
 	process.start()
