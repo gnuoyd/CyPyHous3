@@ -1,4 +1,4 @@
-###Master/Device:
+### Master/Device:
 
 **termianl one**: roscore
 
@@ -16,7 +16,7 @@
 
 
 
-###Slave/Controller :
+### Slave/Controller :
 
 **terminal one**:
 
