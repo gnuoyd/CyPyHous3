@@ -122,66 +122,7 @@ def listening_instruction():
         instructiond_handler = threading.Thread( target=connection_handler, args=(controller_sock,address,) )
         instructiond_handler.start()
 
-# the following functions handles device monitoring ---------------------------------------------------------
 
-def get_info() -> str:
-    '''
-    INPUT  - NONE
-    OUTPUT - NONE
-    FUNCATIONALIATY - this function gets the necessary infomation from the device 
-                      and then send back to the controller  
-    '''
-    msg = "some_info" + str(datetime.datetime.now().time())
-    return msg
-
-def monitor_query_handler(address: tuple , parameter: list): # no returns 
-    '''
-    INPUT  - address: address of the controller 
-             parameter: monitering parameter 
-    OUTPUT - NONE
-    FUNCATIONALIATY - this function sends back infomation of the device back to the 
-                      controller, and the dehavior is controller by the parameter 
-                      passed in. The first parameter controls the time gap between 
-                      each UDP package, the seoncd one control the number of time that 
-                      the device will send the information .
-    '''
-    try:
-        gap = int(parameter[0])
-        termination = int(parameter[1])
-    except:
-        print("[ERROR]: monitoring parameter input type error, it can only accept int")
-
-    for i in range(termination):
-        info = get_info()
-        msg = bytes( device_name + ' ' + info,"utf-8" )
-        s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM ) 
-        s.sendto( msg, address )
-        s.close()
-        time.sleep(gap)
-
-
-def monitoring():
-    '''
-    INPUT  - NONE
-    OUTPUT - NONE
-    FUNCATIONALIATY - This function constently monitering the 
-    '''
-    port = 60653
-    buffer_size = 64 
-    monitor_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    monitor_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    monitor_socket.bind(('', port))
-
-    # Listening
-    while True:
-        instruction, address = monitor_socket.recvfrom(buffer_size)
-        instruction = instruction.decode("utf-8")
-        if( instruction[0:7] == "MONITOR" ):
-            parameter = instruction[8:].split(' ')
-            udp_response = threading.Thread( target=monitor_query_handler, args=(address, parameter,) )
-            udp_response.start()
-
-    
 #-----------------------------------------------------------------------------------------------------------------------
 # main
 tmp_path = str(os.environ.get('HOME')) + "/tmp"

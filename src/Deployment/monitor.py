@@ -1,8 +1,6 @@
-import socket
-import time
+import socket, time, threading, os, multiprocessing,rospy
 from collections import OrderedDict 
-
-
+from std_msgs.msg import String
 
 def update_device ( device_list ):
     '''
@@ -30,56 +28,62 @@ def update_device ( device_list ):
     print("[INFO]: Discover finished")
 
 
+def talker( topic, tpoic_type, data_queue ):
 
-def monitor_device(address):
-    sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sender.sendto(b'MONITOR' )
-    sender.settimeout(3.0)
+    os.environ['ROS_MASTER_URI'] = "http://localhost:11311"
+    pub = rospy.Publisher(topic, tpoic_type, queue_size = 10 )
+    rospy.init_node('talker', anonymous=True)
+    while not rospy.is_shutdown():
+        # print("puted data to ", topic)
+        data = data_queue.get()
+        # rospy.loginfo(data)
+        pub.publish(data)
 
 
-    while True: 
-        try:
-            info, address = sender.recvfrom(buffer_size)
-            info = info.decode("utf-8")
-            print( info, " from ",address )
-        except:
-            break
 
-    sender.close()
+
+# --------------------------------------
+def callback(data, args):
+    print(args[1], " : ", data)
+    if( not args[0].full() ):
+        args[0].put( data )
+
+def listener(data_queue, address, topic ):
+    # subscribe from remote master
+    os.environ['ROS_MASTER_URI'] = "http://" + address + ":11311"
+    rospy.init_node('listener', anonymous=True)
+
+    rospy.Subscriber(name = topic, 
+                     data_class =  String, 
+                     callback = callback, 
+                     callback_args = (data_queue, address)
+                     )
+    rospy.spin()
+
+
 
 
 
 # -----------------------------------------------------------------------------------
 
+topic = "chatter"
+
 device_list = {}
+update_device(device_list)
 
-while True:
-    command = input(">>> ")
-    if( command == "exit" or command == "quit" ):
-        break
 
-    elif( command[0:4] == "list" ):
-        update_device(device_list)
-    
-    elif( command[0:7] == "monitor" ):
-        print("Which of the following devices do you want to monitor? ")
-        print("\n ------------------------ Device List ------------------------")
-        for index, attributes in device_list.items():
-            print(index, " : name" + attributes[0] + "\t\t\t IP:" + attributes[1] + "\t\t Status:" + attributes[2] )
-        print(" -------------------------------------------------------------\n")
+print(os.environ['ROS_IP']) #need to det thid first in shell
+print(os.environ['ROS_MASTER_URI'])
 
-        index_list = input("Input the device index, separate by space >>> ").split(' ')
-        print('\n')
-        try:
-            index_list = [int(x) for x in index_list if x != '']
-            index_list = list(set(index_list))
-        except:
-            print("[ERROR]: input not valid")
-            continue
+os.environ['ROS_MASTER_URI'] = "http://localhost:11311"
 
-        for index in index_list:
-            print("[EXC]: Sending command to " + str(device_list[index][1]))
-            monitor_device(device_list[index][1])
+data_queue_list = [ multiprocessing.Queue() for index, attributes in device_list.items() ]
+sub_process_list = [ multiprocessing.Process(target = listener, args = ( data_queue_list[index], attributes[1], topic, ) ) for index, attributes in device_list.items() ]
+pub_process_list = [ multiprocessing.Process(target = talker, args = (topic+str(data_queue_list.index(queue)), String, queue,))  for queue in  data_queue_list]
 
-    else:
-        print("[ERROR]: command not vaild")
+for process in sub_process_list :
+	process.start()
+
+for process in pub_process_list :
+	process.start()
+
