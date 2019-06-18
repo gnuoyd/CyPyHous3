@@ -77,7 +77,7 @@ class MotionAutomaton(threading.Thread):
         """
         return self.__reached
 
-    @position.setter
+    @reached.setter
     def reached(self, r: bool):  # -> NoReturn:
         """
         setter method for reached
