@@ -1,5 +1,4 @@
 from typing import Any  # , NoReturn
-import datatypes
 
 class Dsm(object):
     """
@@ -86,7 +85,7 @@ class Dsm(object):
         """
         self.__type_list = type_list
 
-    def mk_aw_var(self, d_type: datatypes.dtypes , var_name: str, val: Any = None):  # -> NoReturn:
+    def mk_aw_var(self, d_type: Any , var_name: str, val: Any = None):  # -> NoReturn:
         """
         Create allwrite variable
         :type d_type: type
@@ -101,7 +100,7 @@ class Dsm(object):
         self.var_list[last_key] = val
         self.share_list[last_key] = 'aw'
 
-    def mk_ar_var(self, pid: int, numbots: int, d_type: datatypes.dtypes , var_name: str, val: Any = None):
+    def mk_ar_var(self, pid: int, numbots: int, d_type: Any , var_name: str, val: Any = None):
         """
         Create all read variables
         :param pid: declarating robot's pid
