@@ -2,7 +2,7 @@ from geometry_msgs.msg import Pose
 
 from agentThread import AgentThread
 from gvh import Gvh
-from CyPyHous3.src.All import PlannedPath
+import PlannedPath
 
 
 class BasicFollowApp(AgentThread):
